@@ -1,0 +1,2 @@
+archivist-logger~=0.1.1
+flask~=3.1
