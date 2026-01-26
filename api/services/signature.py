@@ -10,11 +10,11 @@ def sign():
     Sign
 
     ---
-    tags:
-        - Signature
     post:
         summary: Encrypt a JSON object
         description: Encrypts all depth-1 values of the provided JSON object.
+        tags:
+            - signature
     """
     return {}, 200
 
@@ -24,10 +24,10 @@ def verify():
     Verify
 
     ---
-    tags:
-        - Signature
     post:
         summary: Encrypt a JSON object
         description: Encrypts all depth-1 values of the provided JSON object.
+        tags:
+            - signature
     """
     return {}, 200

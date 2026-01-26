@@ -1,4 +1,4 @@
-from base64 import standard_b64encode, standard_b64decode
+from base64 import b64encode, b64decode
 import json
 from typing import Any
 
@@ -29,11 +29,11 @@ class Base64Crypter(RootCrypter):
         
         :param s: any json-serializable value
         """
-        return standard_b64encode(json.dumps(s, ensure_ascii=False).encode("utf-8")).decode("ascii")
+        return b64encode(json.dumps(s, ensure_ascii=False).encode("utf-8")).decode("ascii")
 
     def decrypt(self, s: str) -> Any:
         """Decipher string input using base64 decoding and return as a json object.
         
         :param s: base64-encoded string
         """
-        return json.loads(standard_b64decode(s.encode("ascii")))
+        return json.loads(b64decode(s.encode("ascii"), validate=True))
