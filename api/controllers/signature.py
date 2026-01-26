@@ -1,5 +1,5 @@
 
-class SigningController:
+class SignatureHandler:
 
     def sign(self, payload: dict) -> dict:
         return payload

@@ -22,16 +22,17 @@ class RootCrypter:
 
 
 class Base64Crypter(RootCrypter):
+    """Implement a base64 obfuscation to mimic encryption."""
 
     def encrypt(self, s: Any) -> str:
-        """Cipher json input using base64 encoding.
+        """Obfuscate json input using base64 encoding.
         
         :param s: any json-serializable value
         """
         return standard_b64encode(json.dumps(s, ensure_ascii=False).encode("utf-8")).decode("ascii")
 
     def decrypt(self, s: str) -> Any:
-        """Decipher string input using base64 decoding and return as json object.
+        """Decipher string input using base64 decoding and return as a json object.
         
         :param s: base64-encoded string
         """

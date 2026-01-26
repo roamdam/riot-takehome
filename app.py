@@ -1,6 +1,6 @@
 from archivist import LoggerBuilder
-from flask import Flask, request
-from http import HTTPStatus
+from flask import Flask
+from flasgger import Swagger
 
 from api.services.encryption import blueprint_encryption
 from api.services.signature import blueprint_signature
@@ -11,3 +11,9 @@ app = Flask(__name__)
 
 app.register_blueprint(blueprint_encryption)
 app.register_blueprint(blueprint_signature)
+
+swagger = Swagger(app)
+
+
+if __name__ == "__main__":
+    app.run(debug=True)
