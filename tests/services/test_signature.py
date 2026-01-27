@@ -1,6 +1,6 @@
 from unittest import TestCase
-
 from flask import Flask
+from http import HTTPStatus
 
 from api.config.fields import SignatureFields
 from api.services.signature import sign
@@ -21,7 +21,7 @@ class TestSignatureService(TestCase):
         with mock_app.test_request_context("/sign", method="POST", json=payload):
             response, status_code = sign()
 
-        self.assertEqual(status_code, 200)
+        self.assertEqual(status_code, HTTPStatus.OK)
         self.assertIn(SignatureFields.signature, response)
         self.assertIsInstance(response[SignatureFields.signature], str)
 
@@ -48,6 +48,6 @@ class TestSignatureService(TestCase):
         with mock_app.test_request_context("/sign", method="POST", json=payload2):
             response2, status_code2 = sign()
 
-        self.assertEqual(status_code1, 200)
-        self.assertEqual(status_code2, 200)
+        self.assertEqual(status_code1, HTTPStatus.OK)
+        self.assertEqual(status_code2, HTTPStatus.OK)
         self.assertEqual(response1[SignatureFields.signature], response2[SignatureFields.signature])

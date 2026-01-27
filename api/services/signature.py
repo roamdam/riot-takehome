@@ -1,4 +1,5 @@
 from flask import Blueprint, request
+from http import HTTPStatus
 
 from ..config.fields import SignatureFields
 from ..controllers.signature import SignatureHandler
@@ -24,7 +25,7 @@ def sign():
     handler = SignatureHandler(signer=HMACSigner())
 
     output[SignatureFields.signature] = handler.sign(payload)
-    return output, 200
+    return output, HTTPStatus.OK
 
 
 @blueprint_signature.route("/verify", methods=["POST"])
@@ -39,4 +40,4 @@ def verify():
         tags:
             - signature
     """
-    return {}, 200
+    return {}, HTTPStatus.OK
