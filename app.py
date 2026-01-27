@@ -8,7 +8,7 @@ from api.services.signature import blueprint_signature
 from api.services.swagger import swagger_ui_blueprint
 
 
-logger = LoggerBuilder().build(template="rotating")
+logger = LoggerBuilder().build()
 logger.debug("Start API Service")
 
 app = Flask(__name__)
