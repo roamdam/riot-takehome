@@ -40,4 +40,16 @@ def verify():
         tags:
             - signature
     """
-    return {}, HTTPStatus.OK
+    payload = request.get_json()
+    # Validate that signature and data are present in payload
+    if SignatureFields.signature not in payload or SignatureFields.data not in payload:
+        return {"error": "Missing signature or data in payload"}, HTTPStatus.BAD_REQUEST
+
+    handler = SignatureHandler(signer=HMACSigner())
+
+    # Generate signature from data and compare to provided signature
+    signature = handler.sign(payload[SignatureFields.data])
+    if signature != payload[SignatureFields.signature]:
+        return {"error": "Invalid signature"}, HTTPStatus.BAD_REQUEST
+    else:
+        return "", HTTPStatus.NO_CONTENT
