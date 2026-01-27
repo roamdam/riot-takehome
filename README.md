@@ -28,23 +28,26 @@ From there, here are some ready-to-execute requests :
 
 ```bash
 # Encrypt
-
+curl -X POST http://127.0.0.1:5000/api/encrypt -H 'Content-Type: application/json' -d '{"Hello": "world"}'
 # Decrypt return from encrypt
-
+curl -X POST http://127.0.0.1:5000/api/decrypt -H 'Content-Type: application/json' -d '{"Hello":"@@enc@@v1::IndvcmxkIg=="}'
 # Decrypt return from encrypt with an added clear field
-
+curl -X POST http://127.0.0.1:5000/api/decrypt -H 'Content-Type: application/json' -d '{"Hello":"@@enc@@v1::IndvcmxkIg==", "from": "earth"}'
 ```
 
 #### Sign / verify
 
 ```bash
 # Sign
-
+curl -X POST http://127.0.0.1:5000/api/sign -H 'Content-Type: application/json' -d '{"Hello": "world"}'
 # Verify with returned signature
-
+curl -X POST http://127.0.0.1:5000/api/verify -H 'Content-Type: application/json' -d '{"data": {"Hello": "world"}, "signature":"5b1ffef543e790b14d5b283f8205cccad151d3f7d05829b79f76541d1ef71eba"}'
 # Verify with tampered data
+curl -X POST http://127.0.0.1:5000/api/verify -H 'Content-Type: application/json' -d '{"data": {"Hi": "world"}, "signature":"5b1ffef543e790b14d5b283f8205cccad151d3f7d05829b79f76541d1ef71eba"}'
 
-# Verify identical payloads with varying field ordering
+# Verify identical JSON with varying ordering
+curl -X POST http://127.0.0.1:5000/api/verify -H 'Content-Type: application/json' -d '{"data": {"me": "here", "you": "there"}, "signature": "15cd5d148d56732a0d52e0f352c789a4fc738b7b6bed0b66cfd3f8461eaf14df"}'
+curl -X POST http://127.0.0.1:5000/api/verify -H 'Content-Type: application/json' -d '{"data": {"you": "there", "me": "here"}, "signature": "15cd5d148d56732a0d52e0f352c789a4fc738b7b6bed0b66cfd3f8461eaf14df"}'
 
 ```
 
@@ -91,6 +94,14 @@ The choice of the sentinel value emerges from two ideas:
 * avoid collision with clear strings. This would be business/domain dependant, but as an generic example I used
 `@@enc@@vX::`. The versioning would, for instance, allow to link various encryption algorithm behind the scenes.
 * allow easy reading by humans, in the code or in the logs. 
+
+### Allowing any key ordering for signature
+
+I used the canonical representation of the given payload to make the signature independant of the order of keys. Before
+creating the signature, the JSON is serialized to its canonical version : most compact form and ordered keys (recursively).
+
+This allows payloads with the same items but in different orders to have the same seriliazed version, and then the same
+signature.
 
 ### Storage of HMAC key
 
