@@ -1,4 +1,8 @@
-from flask import Blueprint
+from flask import Blueprint, request
+
+from ..config.fields import SignatureFields
+from ..controllers.signature import SignatureHandler
+from ..helpers.signer import HMACSigner
 
 
 blueprint_signature = Blueprint("signature", import_name="__name__")
@@ -16,7 +20,11 @@ def sign():
         tags:
             - signature
     """
-    return {}, 200
+    payload, output = request.get_json(), {}
+    handler = SignatureHandler(signer=HMACSigner())
+
+    output[SignatureFields.signature] = handler.sign(payload)
+    return output, 200
 
 
 @blueprint_signature.route("/verify", methods=["POST"])

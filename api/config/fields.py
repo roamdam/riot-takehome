@@ -1,0 +1,2 @@
+class SignatureFields:
+    signature = "signature"
