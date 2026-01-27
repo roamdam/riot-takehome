@@ -18,6 +18,7 @@ Default payloads are valid ones, and work as pair between `encrypt`/`decrypt` en
 You can also run the Flask app locally. With the requirements installed, it will default to `http://127.0.0.1:5000` :
 
 ```bash
+pip install -r requirements.txt
 flask run
 ```
 
@@ -78,18 +79,18 @@ maintaining several algorithms.
 
 As the `decrypt` endpoint must be able to distinguish between encrypted values and clear ones, I chose to use a sentinel
 string, prefixed to the encrypted values. The role of this sentinel is to signal that the value was encrypted by us,
-allowing an easy detection without compromising the encryption itself, which is provided by the encryption algorithm on
+allowing an easy detection without compromising the encryption, which is provided by the encryption algorithm on
 the value itself.
 
 If the sentinel isn't there, we know it's not encrypted. If it's there, we try and decrypt the value. The endpoint will
 return a `BadRequest` if any encrypted string cannot be decrypted, meaning the string was not an encrypted value returned
 by us previously.
 
-The choice of the sentinel responds to two ideas:
+The choice of the sentinel value emerges from two ideas:
 
 * avoid collision with clear strings. This would be business/domain dependant, but as an generic example I used
 `@@enc@@vX::`. The versioning would, for instance, allow to link various encryption algorithm behind the scenes.
-* allow easy reads by humans, in the code or in the logs. 
+* allow easy reading by humans, in the code or in the logs. 
 
 ### Storage of HMAC key
 
