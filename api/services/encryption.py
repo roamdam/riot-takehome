@@ -133,5 +133,5 @@ def decrypt():
         except (JSONDecodeError, UnicodeDecodeError, BinasciiError, UnicodeEncodeError):
             logger.error("Unable to decrypt value for key: %s", key)
             return {"error": "One or more items were not properly encrypted"}, HTTPStatus.BAD_REQUEST
-            
+
     return decrypted, HTTPStatus.OK

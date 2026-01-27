@@ -20,7 +20,7 @@ class TestBase64Crypter(TestCase):
             non_json = "ApPl"
             with self.assertRaises((JSONDecodeError, UnicodeDecodeError)):
                 self.crypter.decrypt(non_json)
-        
+
         with self.subTest("UnicodeEncodeError is raised on invalid ascii input"):
             non_ascii = "§§"
             with self.assertRaises(UnicodeEncodeError):

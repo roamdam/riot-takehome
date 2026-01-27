@@ -44,7 +44,7 @@ class TestEncrypter(TestCase):
 
         self.assertEqual(actual, "")
 
-    @patch.object(RootCrypter, "encrypt", return_value = "encrypted_data")
+    @patch.object(RootCrypter, "encrypt", return_value="encrypted_data")
     def test_encrypt(self, mo_crypter):
         value = {"key": "value"}
 
@@ -53,8 +53,8 @@ class TestEncrypter(TestCase):
 
         self.assertEqual(actual, expected)
         mo_crypter.assert_called_once_with(value)
-    
-    @patch.object(RootCrypter, "decrypt", return_value = {"key": "value"})
+
+    @patch.object(RootCrypter, "decrypt", return_value={"key": "value"})
     def test_decrypt(self, mo_crypter):
         encrypted = self.handler.SENTINEL + "encrypted_data"
 
