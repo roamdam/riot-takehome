@@ -29,14 +29,14 @@ class TestSignatureService(TestCase):
         payload1 = {
             "b": 2,
             "a": {
-                "c": "here",
-                "d": "None"
+                "c": {},
+                "d": None
             }
         }
         payload2 = {
             "a": {
-                "d": "None",
-                "c": "here"
+                "d": None,
+                "c": {}
             },
             "b": 2
         }
@@ -112,3 +112,44 @@ class TestSignatureService(TestCase):
 
         with self.subTest("Tampered Data"):
             self.assertEqual(tampered_status, HTTPStatus.BAD_REQUEST)
+
+    # Test successful verify with two payloads with same ittems but different orders
+    def test_verify_valid_different_paylods(self):
+        payload1 = {
+            "name": {
+                "a": 1,
+                "b": 2
+            },
+            "role": "admin"
+        }
+        payload2 = {
+            "role": "admin",
+            "name": {
+                "b": 2,
+                "a": 1
+            }
+        }
+
+        # Sign the first payload to get a valid signature
+        with mock_app.test_request_context("/sign", method="POST", json=payload1):
+            sign_response, _ = sign()
+
+        signature = sign_response[SignatureFields.signature]
+
+        # Both payloads must verify successfully
+        verify1 = {
+            SignatureFields.data: payload1,
+            SignatureFields.signature: signature
+        }
+        verify2 = {
+            SignatureFields.data: payload2,
+            SignatureFields.signature: signature
+        }
+
+        with mock_app.test_request_context("/verify", method="POST", json=verify1):
+            _, status1 = verify()
+        with mock_app.test_request_context("/verify", method="POST", json=verify2):
+            _, status2 = verify()
+
+        self.assertEqual(status1, HTTPStatus.NO_CONTENT)
+        self.assertEqual(status2, HTTPStatus.NO_CONTENT)
