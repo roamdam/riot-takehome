@@ -51,8 +51,6 @@ class TestSignatureService(TestCase):
         self.assertEqual(status_code2, HTTPStatus.OK)
         self.assertEqual(response1[SignatureFields.signature], response2[SignatureFields.signature])
 
-
-    # test verify service for a matching signature
     def test_roundtrip_verify(self):
         payload = {
             "name": "Bob",
@@ -76,7 +74,6 @@ class TestSignatureService(TestCase):
 
         self.assertEqual(verify_status, HTTPStatus.NO_CONTENT)
 
-    # test unsuccessful verification as subtests: 1) altered signature 2) tampered data
     def test_unsuccessful_verify(self):
         payload = {
             "name": "Charlie",
@@ -100,7 +97,6 @@ class TestSignatureService(TestCase):
 
         with self.subTest("Altered Signature"):
             self.assertEqual(altered_status, HTTPStatus.BAD_REQUEST)
-
 
         # Subtest 2: Tampered data
         tampered_data_payload = {
