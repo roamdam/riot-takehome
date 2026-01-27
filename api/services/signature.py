@@ -38,7 +38,7 @@ def sign():
                                 signature:
                                     type: string
                         example:
-                            signature: 'a1b2c3d4e5f6g7h8i9j0'
+                            signature: a1b2c3d4e5f6g7h8i9j0
             400:
                 description: Invalid input payload (payload is not a JSON object)
                 content:
@@ -85,7 +85,7 @@ def verify():
                             - signature
                             - data
                     example:
-                        signature: 'a1b2c3d4e5f6g7h8i9j0'
+                        signature: 8e11628db50eae6b5bf482d2afb3eaac46eb832ff28b45b2f2b30c1cdcecafaa
                         data:
                             name: Alice
                             age: 32

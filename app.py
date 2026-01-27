@@ -1,5 +1,5 @@
 from archivist import LoggerBuilder
-from flask import Flask, jsonify
+from flask import Flask, jsonify, redirect
 
 from api.config.apispec import spec
 from api.config.definitions import API_URL, SWAGGER_URL, ROOT_URL
@@ -32,6 +32,13 @@ def swagger():
 
 
 app.register_blueprint(swagger_ui_blueprint, url_prefix=SWAGGER_URL)
+
+
+@app.route("/")
+def index():
+    """Redirect to swagger UI."""
+    return redirect(SWAGGER_URL)
+
 
 if __name__ == "__main__":
     app.run()
