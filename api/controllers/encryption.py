@@ -3,7 +3,7 @@ from typing import Any
 from ..helpers.crypters import RootCrypter
 
 
-class CryptingHandler:
+class EncryptionHandler:
     """The CryptingHandler is responsible for high-level management of encryption and decryption of values.
 
     The encryption/decryption process is handled by the provided ``crypter`` so that the handler remains agnostic of

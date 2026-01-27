@@ -5,7 +5,7 @@ from logging import getLogger
 
 from flask import Blueprint, request
 
-from ..controllers.encryption import CryptingHandler
+from ..controllers.encryption import EncryptionHandler
 from ..helpers.crypters import Base64Crypter
 
 
@@ -60,7 +60,7 @@ def encrypt():
     """
     payload, encrypted = request.get_json(), {}
 
-    handler = CryptingHandler(crypter=Base64Crypter())
+    handler = EncryptionHandler(crypter=Base64Crypter())
     for key, value in payload.items():
         encrypted[key] = handler.encrypt(value)
     return encrypted, HTTPStatus.OK
@@ -121,7 +121,7 @@ def decrypt():
     logger = getLogger(__name__)
     payload, decrypted = request.get_json(), {}
 
-    handler = CryptingHandler(crypter=Base64Crypter())
+    handler = EncryptionHandler(crypter=Base64Crypter())
     for key, value in payload.items():
         if not isinstance(value, str) or not handler.is_encrypted(value):
             decrypted[key] = value

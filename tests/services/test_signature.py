@@ -113,7 +113,6 @@ class TestSignatureService(TestCase):
         with self.subTest("Tampered Data"):
             self.assertEqual(tampered_status, HTTPStatus.BAD_REQUEST)
 
-    # Test successful verify with two payloads with same ittems but different orders
     def test_verify_valid_different_paylods(self):
         payload1 = {
             "name": {

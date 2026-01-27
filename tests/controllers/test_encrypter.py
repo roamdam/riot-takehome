@@ -1,14 +1,14 @@
 from unittest import TestCase
 from unittest.mock import patch
 
-from api.controllers.encryption import CryptingHandler
+from api.controllers.encryption import EncryptionHandler
 from api.helpers.crypters import RootCrypter
 
 
 class TestEncrypter(TestCase):
     # Set testing class in setup
     def setUp(self):
-        self.handler = CryptingHandler(crypter=RootCrypter())
+        self.handler = EncryptionHandler(crypter=RootCrypter())
 
     def test_is_encrypted_true(self):
         with self.subTest("With regular string:"):
