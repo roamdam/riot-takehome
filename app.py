@@ -22,7 +22,6 @@ with app.test_request_context():
         logger.debug(f"Loaded swagger docs for {fn_name}")
 
 
-
 @app.route(API_URL)
 def swagger():
     """Swagger API definition."""
