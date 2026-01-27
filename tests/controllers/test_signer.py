@@ -11,7 +11,7 @@ class TestSigner(TestCase):
         self.handler = SignatureHandler(signer=RootSigner())
 
     def test_canonicalise(self):
-        payload1 = {"a": 1, "e": "value","b": {"c": 4, "d": None}}
+        payload1 = {"a": 1, "e": "value", "b": {"c": 4, "d": None}}
         payload2 = {"b": {"d": None, "c": 4}, "a": 1, "e": "value"}
 
         actual1 = self.handler._canonicalise(payload1)

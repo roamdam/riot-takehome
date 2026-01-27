@@ -8,7 +8,7 @@ from ..config.definitions import HMAC_SECRET
 
 class RootSigner:
     """Root class for signing algorithms classes."""
-    
+
     def signature(self, s: Any) -> str:
         """Generate signature for input `s`.
 
@@ -27,11 +27,9 @@ class HMACSigner(RootSigner):
             self.logger.warning("HMAC_SECRET is not set. HMACSigner will not function properly.")
 
     def signature(self, message: str) -> str:
-        """Create an HMAC-SHA256 signature of a string message.
+        """Create an HMAC-SHA256 signature of a message as an hexadecimal string.
 
-        :param message: The message to sign
-
-        :return: Hex-encoded HMAC signature
+        :param str message: The message to sign
         """
         message_bytes = message.encode(self.ENCODING)
         secret_bytes = HMAC_SECRET.encode(self.ENCODING)
