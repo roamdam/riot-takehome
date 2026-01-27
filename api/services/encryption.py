@@ -19,8 +19,7 @@ def encrypt():
 
     ---
     post:
-        summary: Encrypt a JSON object
-        description: Encrypts all depth-1 values of the provided JSON object.
+        summary: Encrypt depth-1 values of a JSON object
         requestBody:
             required: true
             content:

@@ -12,7 +12,8 @@ class CryptingHandler:
 
     When asked to decrypt a value, it removes the marker then delegates the decryption to the crypter.
 
-    param crypter: An instance of a class inheriting from ``RootCrypter``, containing `encrypt` and `decrypt` methods.
+    :param RootCrypter crypter: An instance of a class inheriting from `RootCrypter`, containing `encrypt`
+    and `decrypt` methods.
     """
     SENTINEL = "@@enc@@v1::"
 
@@ -22,7 +23,7 @@ class CryptingHandler:
     def is_encrypted(self, s: str) -> bool:
         """Check if value contains the sentinel marker.
 
-        :param s: Encrypted string as received by ``decrypt``
+        :param str s: Encrypted string as received by ``decrypt``
         """
         if len(s) < len(self.SENTINEL):
             return False
@@ -32,21 +33,21 @@ class CryptingHandler:
     def _remove_sentinel(self, s: str) -> str:
         """Remove sentinel from input string.
 
-        :param s: Encrypted string as received by ``decrypt``
+        :param str s: Encrypted string as received by ``decrypt``
         """
         return s[len(self.SENTINEL):]
 
     def encrypt(self, value: Any) -> str:
         """Apply encryption algorithm and prepend sentinel.
 
-        :param value: Any json-serializable value
+        :param any value: Any json-serializable value
         """
         return self.SENTINEL + self.crypter.encrypt(value)
 
     def decrypt(self, s: str) -> Any:
         """Decrypt input string by removing sentinel then deciphering.
 
-        :param s: Encrypted string as received by ``decrypt``
+        :param str s: Encrypted string as received by ``decrypt``
         """
         encrypted = self._remove_sentinel(s)
         return self.crypter.decrypt(encrypted)
