@@ -40,7 +40,7 @@ class SignatureHandler:
 
     def sign_payload(self, payload: dict) -> Tuple[dict, HTTPStatus]:
         """Generate the signature and prepare Flask response.
-        
+
         :param dict payload: Any JSON validated payload
 
         :return: A tuple containing the result and the corresponding OK http status for flask response
@@ -49,13 +49,13 @@ class SignatureHandler:
             SignatureFields.signature: self.generate_signature(payload)
         }
         return output, HTTPStatus.OK
-    
+
     def verify_payload(self, payload: dict) -> Tuple[Union[str, dict], HTTPStatus]:
         """Verify the data given against the signature.
 
         Generate the signature from `data`, and compare to the given `signature`. If they match, an empty string
         is returned with a NO CONTENT response. If they don't, a BAD REQUEST is returned.
-        
+
         :param dict payload: The payload containing `data` and `signature` fields
 
         :return: A tuple containing the result and the corresponding OK http status for flask response

@@ -42,7 +42,7 @@ class EncryptionHandler:
 
     def encrypt_payload(self, payload: dict) -> Tuple[dict, HTTPStatus]:
         """Encrypt first-level items of input dictionary.
-        
+
         :param dict payload: JSON input to encrypt
 
         :return: A tuple containing the result and the corresponding OK http status for flask response
@@ -51,14 +51,23 @@ class EncryptionHandler:
         for key, value in payload.items():
             encrypted[key] = self.SENTINEL + self.crypter.encrypt(value)
         return encrypted, HTTPStatus.OK
-    
+
     def decrypt_payload(self, payload: dict) -> Tuple[dict, HTTPStatus]:
+        """Decrypt first-level items of input dictionary.
+
+        The method detects encrypted value with the presence of the sentinel marker. Non string items and non encrypted
+        strings are returned as such. If decryption fails on any encrypted string, a BAD REQUEST is returned.
+
+        :param dict payload: JSON input to encrypt
+
+        :return: A tuple containing the result and the corresponding OK http status for flask response
+        """
         decrypted = {}
         for key, value in payload.items():
             if not isinstance(value, str):
                 decrypted[key] = value
                 continue
-            
+
             is_encrypted, string_value = self.detect_encrypted_string(value)
             if not is_encrypted:
                 decrypted[key] = string_value

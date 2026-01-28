@@ -68,7 +68,7 @@ class TestEncrypterEndpointMethods(TestCase):
         self.assertEqual(actual, expected)
         self.assertEqual(status, HTTPStatus.OK)
         mo_decrypter.assert_called_once_with("encrypted data")
-    
+
     @patch.object(RootCrypter, "decrypt")
     def test_decrypt_payload_returns_input_on_clear_input(self, mo_decrypter):
         encrypted = {
@@ -81,7 +81,7 @@ class TestEncrypterEndpointMethods(TestCase):
         self.assertEqual(actual, expected)
         self.assertEqual(status, HTTPStatus.OK)
         mo_decrypter.assert_not_called()
-    
+
     @patch.object(RootCrypter, "decrypt")
     def test_decrypt_payload_returns_input_on_non_str_input(self, mo_decrypter):
         encrypted = {

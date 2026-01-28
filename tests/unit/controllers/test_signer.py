@@ -47,10 +47,11 @@ class TestSignatureHandlerGenerateSignature(TestCase):
         mo_canon.assert_called_once_with(payload)
         mo_signer.assert_called_once_with(mo_canon.return_value)
 
+
 class TestSignatureHandlerMainMethods(TestCase):
 
     def setUp(self):
-        self.handler = SignatureHandler(signer=RootSigner())    
+        self.handler = SignatureHandler(signer=RootSigner())
 
     @patch.object(SignatureHandler, "generate_signature")
     def test_sign_payload_returns_signature_and_OK(self, mo_gen_sig):
@@ -61,7 +62,7 @@ class TestSignatureHandlerMainMethods(TestCase):
             SignatureFields.signature: mo_gen_sig.return_value
         }
 
-        self.assertDictEqual(actual,expected)
+        self.assertDictEqual(actual, expected)
         self.assertEqual(status, HTTPStatus.OK)
         mo_gen_sig.assert_called_once_with(payload)
 

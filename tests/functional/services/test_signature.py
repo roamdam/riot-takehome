@@ -63,7 +63,7 @@ class TestVerifyEndpoint(TestCase):
 
         self.assertEqual(status_code, HTTPStatus.NO_CONTENT)
         self.assertEqual(verified, "")
-    
+
     def test_verify_successfully_verifies_equivalent_payloads(self):
         original1 = {
             "drink": "coffee",
@@ -145,7 +145,7 @@ class TestVerifyEndpoint(TestCase):
         with self.subTest("Test invalid JSON-dict"):
             with mock_app.test_request_context("/verify", method=HTTPMethod.POST, json=""):
                 _, status_code = verify()
-            
+
             self.assertEqual(status_code, HTTPStatus.BAD_REQUEST)
 
         with self.subTest("Test missing keys"):
