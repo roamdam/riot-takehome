@@ -14,8 +14,8 @@ class TestSigner(TestCase):
         payload1 = {"a": 1, "e": "value", "b": {"c": 4, "d": None}}
         payload2 = {"b": {"d": None, "c": 4}, "a": 1, "e": "value"}
 
-        actual1 = self.handler._canonicalise(payload1)
-        actual2 = self.handler._canonicalise(payload2)
+        actual1 = self.handler.canonicalise(payload1)
+        actual2 = self.handler.canonicalise(payload2)
 
         self.assertEqual(actual1, actual2)
 
@@ -23,8 +23,8 @@ class TestSigner(TestCase):
         payload1 = {"a": 1, "b": 2}
         payload2 = {"a": 1, "b": 3}
 
-        actual1 = self.handler._canonicalise(payload1)
-        actual2 = self.handler._canonicalise(payload2)
+        actual1 = self.handler.canonicalise(payload1)
+        actual2 = self.handler.canonicalise(payload2)
 
         self.assertNotEqual(actual1, actual2)
 
@@ -34,7 +34,7 @@ class TestSigner(TestCase):
     def test_sign(self, mo_signer, mo_canon):
         payload = {"key": "value"}
 
-        signature = self.handler.sign(payload)
+        signature = self.handler.generate_signature(payload)
 
         self.assertEqual(signature, mo_signer.return_value)
         mo_canon.assert_called_once_with(payload)

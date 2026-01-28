@@ -1,5 +1,5 @@
 from flask import Blueprint, request
-from http import HTTPStatus
+from http import HTTPMethod, HTTPStatus
 from logging import getLogger
 
 from ..config.fields import SignatureFields
@@ -10,7 +10,7 @@ from ..helpers.signer import HMACSigner
 blueprint_signature = Blueprint("signature", import_name="__name__")
 
 
-@blueprint_signature.route("/sign", methods=["POST"])
+@blueprint_signature.route("/sign", methods=[HTTPMethod.POST])
 def sign():
     """
     Generate signature for received JSON payload.
@@ -73,7 +73,7 @@ def sign():
     return result, status
 
 
-@blueprint_signature.route("/verify", methods=["POST"])
+@blueprint_signature.route("/verify", methods=[HTTPMethod.POST])
 def verify():
     """
     Verify data within payload against provided signature.
