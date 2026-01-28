@@ -67,13 +67,15 @@ def encrypt():
     """
     logger = getLogger(__name__)
     payload = request.get_json()
+    if not isinstance(payload, dict):
+        return {"error": "Input is not a valid JSON"}, HTTPStatus.BAD_REQUEST
 
     handler = EncryptionHandler(crypter=Base64Crypter())
     try:
         result, status = handler.encrypt_payload(payload)
     except Exception as e:
         logger.error("Error when encrypting payload", exc_info=e)
-        result, status = {"error: Unable to encrypt payload"}, HTTPStatus.INTERNAL_SERVER_ERROR
+        result, status = {"error": "Unable to encrypt payload"}, HTTPStatus.INTERNAL_SERVER_ERROR
     return result, status
 
 
@@ -140,11 +142,13 @@ def decrypt():
     """
     logger = getLogger(__name__)
     payload = request.get_json()
+    if not isinstance(payload, dict):
+        return {"error": "Input is not a valid JSON"}, HTTPStatus.BAD_REQUEST
 
     handler = EncryptionHandler(crypter=Base64Crypter())
     try:
         result, status = handler.decrypt_payload(payload)
     except Exception as e:
         logger.error("Error when encrypting payload", exc_info=e)
-        result, status = {"error: Unable to decrypt payload"}, HTTPStatus.INTERNAL_SERVER_ERROR
+        result, status = {"error": "Unable to decrypt payload"}, HTTPStatus.INTERNAL_SERVER_ERROR
     return result, status
