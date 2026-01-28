@@ -1,6 +1,7 @@
-from flask import Blueprint, request
 from http import HTTPMethod, HTTPStatus
 from logging import getLogger
+
+from flask import Blueprint, request
 
 from ..config.fields import SignatureFields
 from ..controllers.signature import SignatureHandler
@@ -62,17 +63,17 @@ def sign():
             - signature
     """
     # We accept non-dict JSON input, such as a single string, null, a list...
-    #   but still raises a BAD REQUEST if get_json did not return properly
+    #   but still raise a BAD REQUEST if get_json did not return properly
     payload = request.get_json(silent=True)
     if payload is None:
         return {"error": "Invalid JSON payload"}, HTTPStatus.BAD_REQUEST
-    logger = getLogger(__name__)
 
+    logger = getLogger(__name__)
     handler = SignatureHandler(signer=HMACSigner())
     try:
         result, status = handler.sign_payload(payload)
     except Exception as e:
-        logger.error("Error when signing payload", exc_info=e)
+        logger.error("Error when signing payload: %s", repr(e))
         result, status = {"error": "Unable to sign payload"}, HTTPStatus.INTERNAL_SERVER_ERROR
     return result, status
 
@@ -132,17 +133,19 @@ def verify():
         tags:
             - signature
     """
-    logger = getLogger(__name__)
     payload = request.get_json()
 
     # Validate that signature and data are present in payload. With more time we'd use a schema validation decorator
-    if not isinstance(payload, dict) or SignatureFields.signature not in payload or SignatureFields.data not in payload:
+    if not isinstance(payload, dict):
+        return {"error": "Invalid JSON payload"}, HTTPStatus.BAD_REQUEST
+    elif SignatureFields.signature not in payload or SignatureFields.data not in payload:
         return {"error": "Missing signature or data in payload"}, HTTPStatus.BAD_REQUEST
 
+    logger = getLogger(__name__)
     handler = SignatureHandler(signer=HMACSigner())
     try:
         result, status = handler.verify_payload(payload)
     except Exception as e:
-        logger.error("Error when verifying payload", exc_info=e)
+        logger.error("Error when verifying payload: %s", repr(e))
         result, status = {"error": "Unable to verify payload"}, HTTPStatus.INTERNAL_SERVER_ERROR
     return result, status

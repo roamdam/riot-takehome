@@ -45,7 +45,7 @@ class EncryptionHandler:
 
         :param dict payload: JSON input to encrypt
 
-        :return: A tuple containing the result and the corresponding OK http status for flask response
+        :return: A tuple containing the result and the corresponding http status for flask response
         """
         encrypted = {}
         for key, value in payload.items():
@@ -56,11 +56,11 @@ class EncryptionHandler:
         """Decrypt first-level items of input dictionary.
 
         The method detects encrypted value with the presence of the sentinel marker. Non string items and non encrypted
-        strings are returned as such. If decryption fails on any encrypted string, a BAD REQUEST is returned.
+        strings are returned as such. If decryption fails on any encrypted string, a `BAD REQUEST` is returned.
 
         :param dict payload: JSON input to encrypt
 
-        :return: A tuple containing the result and the corresponding OK http status for flask response
+        :return: A tuple containing the result and the corresponding http status for flask response
         """
         decrypted = {}
         for key, value in payload.items():
@@ -77,6 +77,6 @@ class EncryptionHandler:
             try:
                 decrypted[key] = self.crypter.decrypt(string_value)
             except (JSONDecodeError, UnicodeDecodeError, BinasciiError, UnicodeEncodeError) as e:
-                self.logger.error("Unable to decrypt value for %s: %s", key, value, exc_info=e)
+                self.logger.error("Unable to decrypt value for %s: %s", key, repr(e))
                 return {"error": "One or more items were not properly encrypted"}, HTTPStatus.BAD_REQUEST
         return decrypted, HTTPStatus.OK

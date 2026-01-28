@@ -143,6 +143,7 @@ class TestVerifyEndpoint(TestCase):
 
     def test_verify_returns_BADREQUEST_on_invalid_input(self):
         with self.subTest("Test invalid JSON-dict"):
+            # Mock an invalid json input with json=""
             with mock_app.test_request_context("/verify", method=HTTPMethod.POST, json=""):
                 _, status_code = verify()
 

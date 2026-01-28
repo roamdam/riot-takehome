@@ -34,7 +34,6 @@ class SignatureHandler:
 
         The generated signature is independent of the keys order.
         """
-        self.logger.debug("Generate signature for payload %s", payload)
         canonical = self.canonicalise(payload)
         return self.signer.signature(canonical)
 
@@ -43,7 +42,7 @@ class SignatureHandler:
 
         :param dict payload: Any JSON validated payload
 
-        :return: A tuple containing the result and the corresponding OK http status for flask response
+        :return: A tuple containing the result and the corresponding http status for flask response
         """
         output = {
             SignatureFields.signature: self.generate_signature(payload)
@@ -54,11 +53,11 @@ class SignatureHandler:
         """Verify the data given against the signature.
 
         Generate the signature from `data`, and compare to the given `signature`. If they match, an empty string
-        is returned with a NO CONTENT response. If they don't, a BAD REQUEST is returned.
+        is returned with a `NO CONTENT` response. If they don't, a `BAD REQUEST` is returned.
 
         :param dict payload: The payload containing `data` and `signature` fields
 
-        :return: A tuple containing the result and the corresponding OK http status for flask response
+        :return: A tuple containing the result and the corresponding http status for flask response
         """
         signature = self.generate_signature(payload[SignatureFields.data])
         if signature != payload[SignatureFields.signature]:

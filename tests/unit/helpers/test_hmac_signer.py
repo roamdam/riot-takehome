@@ -7,13 +7,13 @@ class TestHMACSigner(TestCase):
     def setUp(self):
         self.signer = HMACSigner()
 
-    def test_signature(self):
+    def test_signature_is_str_with_correct_length(self):
         message = "How is my signature ?"
         signature = self.signer.signature(message)
         self.assertIsInstance(signature, str)
         self.assertEqual(len(signature), 64)  # Length of SHA256 hex digest
 
-    def test_signature_variability(self):
+    def test_signature_is_deterministic_and_different_for_different_inputs(self):
         message1 = "Handwavy"
         message2 = "Pinacle aesthetic"
 

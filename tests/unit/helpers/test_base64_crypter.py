@@ -9,7 +9,7 @@ class TestBase64Crypter(TestCase):
     def setUp(self):
         self.crypter = Base64Crypter()
 
-    def test_decrypt_wrong_input(self):
+    def test_decrypt_raises_errors_on_invalid_inputs(self):
         non_bs64 = "Apple, banana, carrot"
 
         with self.subTest("BinasciiError is raised on non-base64 input"):
@@ -26,9 +26,9 @@ class TestBase64Crypter(TestCase):
             with self.assertRaises(UnicodeEncodeError):
                 self.crypter.decrypt(non_ascii)
 
-    def test_encrypt_decrypt(self):
-        original = {"who": "A man with a name."}
-        bs64_repr = "eyJ3aG8iOiAiQSBtYW4gd2l0aCBhIG5hbWUuIn0="
+    def test_decrypt_successfully_descrypts_an_encrypted_value(self):
+        original = {"who": "A person with no name."}
+        bs64_repr = "eyJ3aG8iOiAiQSBwZXJzb24gd2l0aCBubyBuYW1lLiJ9"
 
         with self.subTest("Test encryption"):
             actual = self.crypter.encrypt(original)

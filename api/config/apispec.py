@@ -5,7 +5,7 @@ from apispec_webframeworks.flask import FlaskPlugin
 
 # Create an APISpec
 spec = APISpec(
-    title="Riot takehome API — Romain DAMIAN",
+    title="Riot take-home challenge API — Romain DAMIAN",
     version="0.1.0",
     openapi_version="3.0.2",
     plugins=[FlaskPlugin()]

@@ -1,7 +1,6 @@
 from hashlib import sha256
 import hmac
 from logging import getLogger
-from typing import Any
 
 from ..config.settings import HMAC_SECRET
 
@@ -9,7 +8,7 @@ from ..config.settings import HMAC_SECRET
 class RootSigner:
     """Root class for signing algorithms classes."""
 
-    def signature(self, s: Any) -> str:
+    def signature(self, s: str) -> str:
         """Generate signature for input `s`.
 
         To be overridden in child classes.

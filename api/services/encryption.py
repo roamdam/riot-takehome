@@ -65,11 +65,11 @@ def encrypt():
         tags:
             - encryption
     """
-    logger = getLogger(__name__)
     payload = request.get_json()
     if not isinstance(payload, dict):
         return {"error": "Input is not a valid JSON"}, HTTPStatus.BAD_REQUEST
 
+    logger = getLogger(__name__)
     handler = EncryptionHandler(crypter=Base64Crypter())
     try:
         result, status = handler.encrypt_payload(payload)
@@ -140,11 +140,11 @@ def decrypt():
         tags:
             - encryption
     """
-    logger = getLogger(__name__)
     payload = request.get_json()
     if not isinstance(payload, dict):
         return {"error": "Input is not a valid JSON"}, HTTPStatus.BAD_REQUEST
 
+    logger = getLogger(__name__)
     handler = EncryptionHandler(crypter=Base64Crypter())
     try:
         result, status = handler.decrypt_payload(payload)
