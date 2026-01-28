@@ -65,12 +65,18 @@ Below are explanations about some architectural or functional choices I made for
 ### Usage of a sentinel to detect encrypted values
 
 As the `decrypt` endpoint must be able to distinguish between encrypted values and clear ones, I chose to use a sentinel
-string, prefixed to the encrypted values. This mimics what happens for PGP messages or RSA keys.
+string, prefixed to the encrypted values. This mimics what happens for PGP messages or RSA keys. The form is:
+
+```json
+{
+    "name": "--- BEGIN CRYPTED MESSAGE ---IkFsaWNlIg=="
+}
+```
 
 The idea is that the cryptographic security is provided by the chosen encryption algorithm, and the sentinel is only
 there to signal an encrypted value for later calls to `/decrypt` endpoint.
 
-There's a slight risk of collision with a clear value that would actually be prefixed with the sentinel. Knowing more
+There's a (unlikely) risk of collision with a clear value that would actually start with the sentinel. Knowing more
 about the API business context would suffice to choose an even better sentinel. 
 
 ### Abstraction
