@@ -1,18 +1,16 @@
-from binascii import Error as BinasciiError
-from http import HTTPStatus
-from json import JSONDecodeError
+from http import HTTPStatus, HTTPMethod
 from logging import getLogger
 
 from flask import Blueprint, request
 
-from ..controllers.encryption import CryptingHandler
+from ..controllers.encryption import EncryptionHandler
 from ..helpers.crypters import Base64Crypter
 
 
 blueprint_encryption = Blueprint("encryption", import_name="__name__")
 
 
-@blueprint_encryption.route("/encrypt", methods=["POST"])
+@blueprint_encryption.route("/encrypt", methods=[HTTPMethod.POST])
 def encrypt():
     """
     Encrypt all depth-1 values in the received JSON payload.
@@ -42,12 +40,21 @@ def encrypt():
                             type: object
                             additionalProperties: true
                         example:
-                            active: '@@enc@@v1::dHJ1ZQ=='
-                            age: '@@enc@@v1::MzI='
-                            metadata: '@@enc@@v1::eyJjb3VudHJ5IjogIkZSIn0='
-                            name: '@@enc@@v1::IkFsaWNlIg=='
+                            active: --- BEGIN CRYPTED MESSAGE ---dHJ1ZQ==
+                            age: --- BEGIN CRYPTED MESSAGE ---MzI=
+                            metadata: --- BEGIN CRYPTED MESSAGE ---eyJjb3VudHJ5IjogIkZSIn0=
+                            name: --- BEGIN CRYPTED MESSAGE ---IkFsaWNlIg==
             400:
                 description: Invalid input payload (payload is not a JSON object)
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                error:
+                                    type: string
+            500:
+                description: Unable to encrypt message
                 content:
                     application/json:
                         schema:
@@ -58,15 +65,21 @@ def encrypt():
         tags:
             - encryption
     """
-    payload, encrypted = request.get_json(), {}
+    logger = getLogger(__name__)
+    payload = request.get_json()
+    if not isinstance(payload, dict):
+        return {"error": "Input is not a valid JSON"}, HTTPStatus.BAD_REQUEST
 
-    handler = CryptingHandler(crypter=Base64Crypter())
-    for key, value in payload.items():
-        encrypted[key] = handler.encrypt(value)
-    return encrypted, HTTPStatus.OK
+    handler = EncryptionHandler(crypter=Base64Crypter())
+    try:
+        result, status = handler.encrypt_payload(payload)
+    except Exception as e:
+        logger.error("Error when encrypting payload", exc_info=e)
+        result, status = {"error": "Unable to encrypt payload"}, HTTPStatus.INTERNAL_SERVER_ERROR
+    return result, status
 
 
-@blueprint_encryption.route("/decrypt", methods=["POST"])
+@blueprint_encryption.route("/decrypt", methods=[HTTPMethod.POST])
 def decrypt():
     """
     Decrypt depth-1 items from payload. If an item was not encrypted, it is returned as is.
@@ -86,11 +99,11 @@ def decrypt():
                         type: object
                         additionalProperties: true
                     example:
-                        active: '@@enc@@v1::dHJ1ZQ=='
-                        age: '@@enc@@v1::MzI='
-                        metadata: '@@enc@@v1::eyJjb3VudHJ5IjogIkZSIn0='
-                        name: '@@enc@@v1::IkFsaWNlIg=='
-                        comment: Clear value
+                        active: --- BEGIN CRYPTED MESSAGE ---dHJ1ZQ==
+                        age: --- BEGIN CRYPTED MESSAGE ---MzI=
+                        metadata: --- BEGIN CRYPTED MESSAGE ---eyJjb3VudHJ5IjogIkZSIn0=
+                        name: --- BEGIN CRYPTED MESSAGE ---IkFsaWNlIg==
+                        comment: Not encrypted
         responses:
             200:
                 description: Successfully decrypted JSON object
@@ -105,9 +118,18 @@ def decrypt():
                             active: true
                             metadata:
                                 country: FR
-                            comment: Clear value
+                            comment: Not encrypted
             400:
                 description: Invalid input payload or malformed encrypted value
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                error:
+                                    type: string
+            500:
+                description: Unable to decrypt message
                 content:
                     application/json:
                         schema:
@@ -119,18 +141,14 @@ def decrypt():
             - encryption
     """
     logger = getLogger(__name__)
-    payload, decrypted = request.get_json(), {}
+    payload = request.get_json()
+    if not isinstance(payload, dict):
+        return {"error": "Input is not a valid JSON"}, HTTPStatus.BAD_REQUEST
 
-    handler = CryptingHandler(crypter=Base64Crypter())
-    for key, value in payload.items():
-        if not isinstance(value, str) or not handler.is_encrypted(value):
-            decrypted[key] = value
-            continue
-
-        try:
-            decrypted[key] = handler.decrypt(value)
-        except (JSONDecodeError, UnicodeDecodeError, BinasciiError, UnicodeEncodeError):
-            logger.error("Unable to decrypt value for key: %s", key)
-            return {"error": "One or more items were not properly encrypted"}, HTTPStatus.BAD_REQUEST
-
-    return decrypted, HTTPStatus.OK
+    handler = EncryptionHandler(crypter=Base64Crypter())
+    try:
+        result, status = handler.decrypt_payload(payload)
+    except Exception as e:
+        logger.error("Error when encrypting payload", exc_info=e)
+        result, status = {"error": "Unable to decrypt payload"}, HTTPStatus.INTERNAL_SERVER_ERROR
+    return result, status

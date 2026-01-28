@@ -1,5 +1,6 @@
 from flask import Blueprint, request
-from http import HTTPStatus
+from http import HTTPMethod, HTTPStatus
+from logging import getLogger
 
 from ..config.fields import SignatureFields
 from ..controllers.signature import SignatureHandler
@@ -9,7 +10,7 @@ from ..helpers.signer import HMACSigner
 blueprint_signature = Blueprint("signature", import_name="__name__")
 
 
-@blueprint_signature.route("/sign", methods=["POST"])
+@blueprint_signature.route("/sign", methods=[HTTPMethod.POST])
 def sign():
     """
     Generate signature for received JSON payload.
@@ -48,17 +49,35 @@ def sign():
                             properties:
                                 error:
                                     type: string
+            500:
+                description: Unable to sign message
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                error:
+                                    type: string
         tags:
             - signature
     """
-    payload, output = request.get_json(), {}
+    # We accept non-dict JSON input, such as a single string, null, a list...
+    #   but still raises a BAD REQUEST if get_json did not return properly
+    payload = request.get_json(silent=True)
+    if payload is None:
+        return {"error": "Invalid JSON payload"}, HTTPStatus.BAD_REQUEST
+    logger = getLogger(__name__)
+
     handler = SignatureHandler(signer=HMACSigner())
+    try:
+        result, status = handler.sign_payload(payload)
+    except Exception as e:
+        logger.error("Error when signing payload", exc_info=e)
+        result, status = {"error": "Unable to sign payload"}, HTTPStatus.INTERNAL_SERVER_ERROR
+    return result, status
 
-    output[SignatureFields.signature] = handler.sign(payload)
-    return output, HTTPStatus.OK
 
-
-@blueprint_signature.route("/verify", methods=["POST"])
+@blueprint_signature.route("/verify", methods=[HTTPMethod.POST])
 def verify():
     """
     Verify data within payload against provided signature.
@@ -101,19 +120,29 @@ def verify():
                             properties:
                                 error:
                                     type: string
+            500:
+                description: Unable to encrypt message
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                error:
+                                    type: string
         tags:
             - signature
     """
+    logger = getLogger(__name__)
     payload = request.get_json()
-    # Validate that signature and data are present in payload
-    if SignatureFields.signature not in payload or SignatureFields.data not in payload:
+
+    # Validate that signature and data are present in payload. With more time we'd use a schema validation decorator
+    if not isinstance(payload, dict) or SignatureFields.signature not in payload or SignatureFields.data not in payload:
         return {"error": "Missing signature or data in payload"}, HTTPStatus.BAD_REQUEST
 
     handler = SignatureHandler(signer=HMACSigner())
-
-    # Generate signature from data and compare to provided signature
-    signature = handler.sign(payload[SignatureFields.data])
-    if signature != payload[SignatureFields.signature]:
-        return {"error": "Invalid signature or data"}, HTTPStatus.BAD_REQUEST
-    else:
-        return "", HTTPStatus.NO_CONTENT
+    try:
+        result, status = handler.verify_payload(payload)
+    except Exception as e:
+        logger.error("Error when verifying payload", exc_info=e)
+        result, status = {"error": "Unable to verify payload"}, HTTPStatus.INTERNAL_SERVER_ERROR
+    return result, status

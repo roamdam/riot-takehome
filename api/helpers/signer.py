@@ -3,7 +3,7 @@ import hmac
 from logging import getLogger
 from typing import Any
 
-from ..config.definitions import HMAC_SECRET
+from ..config.settings import HMAC_SECRET
 
 
 class RootSigner:
@@ -24,7 +24,7 @@ class HMACSigner(RootSigner):
     def __init__(self):
         self.logger = getLogger(__name__)
         if not HMAC_SECRET:
-            self.logger.warning("HMAC_SECRET is not set. HMACSigner will not function properly.")
+            self.logger.warning("HMAC_SECRET is not set, signature algorithm is vulnerable.")
 
     def signature(self, message: str) -> str:
         """Create an HMAC-SHA256 signature of a message as an hexadecimal string.

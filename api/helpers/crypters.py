@@ -32,7 +32,7 @@ class Base64Crypter(RootCrypter):
         return b64encode(json.dumps(s, ensure_ascii=False).encode("utf-8")).decode("ascii")
 
     def decrypt(self, s: str) -> Any:
-        """Decipher string input using base64 decoding and return as a json object.
+        """Base64 decode string input and return as a json object.
 
         :param str s: base64-encoded string
         """
