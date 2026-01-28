@@ -3,7 +3,7 @@ import hmac
 from logging import getLogger
 from typing import Any
 
-from ..config.definitions import HMAC_SECRET
+from ..config.settings import HMAC_SECRET
 
 
 class RootSigner:

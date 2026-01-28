@@ -2,7 +2,7 @@ from archivist import LoggerBuilder
 from flask import Flask, jsonify, redirect
 
 from api.config.apispec import spec
-from api.config.definitions import API_URL, SWAGGER_URL, ROOT_URL
+from api.config.settings import API_URL, SWAGGER_URL, ROOT_URL
 from api.services.encryption import blueprint_encryption
 from api.services.signature import blueprint_signature
 from api.services.swagger import swagger_ui_blueprint

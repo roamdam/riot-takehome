@@ -1,5 +1,6 @@
 from flask import Blueprint, request
 from http import HTTPStatus
+from logging import getLogger
 
 from ..config.fields import SignatureFields
 from ..controllers.signature import SignatureHandler
@@ -48,14 +49,28 @@ def sign():
                             properties:
                                 error:
                                     type: string
+            500:
+                description: Unable to decrypt message
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                error:
+                                    type: string
         tags:
             - signature
     """
-    payload, output = request.get_json(), {}
-    handler = SignatureHandler(signer=HMACSigner())
+    payload = request.get_json()
+    logger = getLogger(__name__)
 
-    output[SignatureFields.signature] = handler.sign(payload)
-    return output, HTTPStatus.OK
+    handler = SignatureHandler(signer=HMACSigner())
+    try:
+        result, status = handler.sign_payload(payload)
+    except Exception as e:
+        logger.error("Error when signing payload", exc_info=e)
+        result, status = {"error": "Unable to sign payload"}, HTTPStatus.INTERNAL_SERVER_ERROR
+    return result, status
 
 
 @blueprint_signature.route("/verify", methods=["POST"])
@@ -101,19 +116,29 @@ def verify():
                             properties:
                                 error:
                                     type: string
+            500:
+                description: Unable to encrypt message
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                error:
+                                    type: string
         tags:
             - signature
     """
+    logger = getLogger(__name__)
     payload = request.get_json()
-    # Validate that signature and data are present in payload
+
+    # Validate that signature and data are present in payload. With more time we'd use a schema validation decorator
     if SignatureFields.signature not in payload or SignatureFields.data not in payload:
         return {"error": "Missing signature or data in payload"}, HTTPStatus.BAD_REQUEST
 
     handler = SignatureHandler(signer=HMACSigner())
-
-    # Generate signature from data and compare to provided signature
-    signature = handler.sign(payload[SignatureFields.data])
-    if signature != payload[SignatureFields.signature]:
-        return {"error": "Invalid signature or data"}, HTTPStatus.BAD_REQUEST
-    else:
-        return "", HTTPStatus.NO_CONTENT
+    try:
+        result, status = handler.verify_payload(payload)
+    except Exception as e:
+        logger.error("Error when verifying payload", exc_info=e)
+        result, status = {"error": "Unable to verify payload"}, HTTPStatus.INTERNAL_SERVER_ERROR
+    return result, status

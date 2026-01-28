@@ -1,4 +1,8 @@
-from typing import Any
+from binascii import Error as BinasciiError
+from http import HTTPStatus
+from json import JSONDecodeError
+from logging import getLogger
+from typing import Tuple
 
 from ..helpers.crypters import RootCrypter
 
@@ -15,39 +19,55 @@ class EncryptionHandler:
     :param RootCrypter crypter: An instance of a class inheriting from `RootCrypter`, containing `encrypt`
     and `decrypt` methods.
     """
-    SENTINEL = "@@enc@@v1::"
+    SENTINEL = "--- BEGIN CRYPTED MESSAGE ---"
 
     def __init__(self, crypter: RootCrypter):
         self.crypter = crypter
+        self.logger = getLogger(__name__)
 
-    def is_encrypted(self, s: str) -> bool:
-        """Check if value contains the sentinel marker.
+    def detect_encrypted_string(self, s: str) -> Tuple[bool, str]:
+        """Check if the input has a sentinel and return the appropriate string.
 
-        :param str s: Encrypted string as received by ``decrypt``
+        :param str s: Possibly encrypted string as received by ``decrypt`` endpoint
+
+        If the input contains the sentinel, it will be recognized a encrypted. In that case,
+        the method returns a tuple `True, <string-without-sentinel>`.
+
+        If the input is clear, it returns a tuple `False, <input string>`.
         """
-        if len(s) < len(self.SENTINEL):
-            return False
+        if len(s) < len(self.SENTINEL) or not s.startswith(self.SENTINEL):
+            return False, s
+        else:
+            return True, s[len(self.SENTINEL):]
 
-        return s.startswith(self.SENTINEL)
+    def encrypt_payload(self, payload: dict) -> Tuple[dict, HTTPStatus]:
+        """Encrypt first-level items of input dictionary.
+        
+        :param dict payload: JSON input to encrypt
 
-    def _remove_sentinel(self, s: str) -> str:
-        """Remove sentinel from input string.
-
-        :param str s: Encrypted string as received by ``decrypt``
+        :return: A tuple containing the result and the corresponding OK http status for flask response
         """
-        return s[len(self.SENTINEL):]
+        encrypted = {}
+        for key, value in payload.items():
+            encrypted[key] = self.SENTINEL + self.crypter.encrypt(value)
+        return encrypted, HTTPStatus.OK
+    
+    def decrypt_payload(self, payload: dict) -> Tuple[dict, HTTPStatus]:
+        decrypted = {}
+        for key, value in payload.items():
+            if not isinstance(value, str):
+                decrypted[key] = value
+                continue
+            
+            is_encrypted, string_value = self.detect_encrypted_string(value)
+            if not is_encrypted:
+                decrypted[key] = string_value
+                continue
 
-    def encrypt(self, value: Any) -> str:
-        """Apply encryption algorithm and prepend sentinel.
-
-        :param any value: Any json-serializable value
-        """
-        return self.SENTINEL + self.crypter.encrypt(value)
-
-    def decrypt(self, s: str) -> Any:
-        """Decrypt input string by removing sentinel then deciphering.
-
-        :param str s: Encrypted string as received by ``decrypt``
-        """
-        encrypted = self._remove_sentinel(s)
-        return self.crypter.decrypt(encrypted)
+            # At this point we know the value has been encrypted
+            try:
+                decrypted[key] = self.crypter.decrypt(string_value)
+            except (JSONDecodeError, UnicodeDecodeError, BinasciiError, UnicodeEncodeError) as e:
+                self.logger.error("Unable to decrypt value for %s: %s", key, value, exc_info=e)
+                return {"error": "One or more items were not properly encrypted"}, HTTPStatus.BAD_REQUEST
+        return decrypted, HTTPStatus.OK

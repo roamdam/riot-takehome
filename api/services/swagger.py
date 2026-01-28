@@ -1,6 +1,6 @@
 from flask_swagger_ui import get_swaggerui_blueprint
 
-from ..config.definitions import SWAGGER_URL, API_URL
+from ..config.settings import SWAGGER_URL, API_URL
 
 
 swagger_ui_blueprint = get_swaggerui_blueprint(
