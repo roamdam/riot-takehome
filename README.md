@@ -56,6 +56,7 @@ The `tests` folder contains `unit` and `functional` tests.
     + `/decrypt` successfully handles the output of `/encrypt`, with additional clear values
     + `/verify` successfully verifies an input signed by us with `/sign`
     + `/verify` successfully refuses tampered data or invalid signature
+    + `/verify` successfully verifies two equivalent payloads with the same signature
 
 ## Design notes
 
@@ -77,7 +78,7 @@ about the API business context would suffice to choose an even better sentinel.
 The objective is to be able to change the encryption or signature algorithms easily without having to change many parts
 of the code. The reasoning is the same for encryption and signatures, we use encryption as example.
 
-The controllers `EncryptionHandler` and `SignatureHandler` takes an algorithm helper as argument.
+The controllers `EncryptionHandler` and `SignatureHandler` take an algorithm helper as argument.
 See `api/services/encryption.py` :
 
 ```python
@@ -87,7 +88,7 @@ handler = EncryptionHandler(crypter=Base64Crypter())
 ```
 
 This allows to easily change the encryption algorithm by just using another algorithm helper. For instance, if we had
-a `RSACrypter`, we just have to the endpoint code to :
+a `RSACrypter`, we would just have to update the endpoint code to :
 
 ```python
 from api.helpers.crypters import RSACrypter
@@ -95,7 +96,7 @@ from api.helpers.crypters import RSACrypter
 handler = EncryptionHandler(crypter=RSACrypter())
 ```
 
-The only constraint is that any algorithm helper must contain `encrypt` `decrypt` methods, as the class `RootCrypter`
+The only constraint is that any algorithm helper must contain `encrypt` and `decrypt` methods, as the class `RootCrypter`
 indicates, so that the encryption controller can use it whatever the algorithm helper chosen.
 
 This architecture allows to maintain several algorithms in the codebase, and why not choose dynamically which algorithm
@@ -109,7 +110,7 @@ Another simpler, but less flexible, option would be a fixed algorithm helper, an
 I used the canonical representation of the given payload to make the signature independant of the order of keys. Before
 creating the signature, the JSON is serialized to its canonical version : most compact form and ordered keys (recursively).
 
-This allows payloads with the same items but in different orders to have the same seriliazed version, and then the same
+This allows payloads with the same items but in different orders to have the same serialized version, thus the same
 signature.
 
 ### Storage of HMAC key
