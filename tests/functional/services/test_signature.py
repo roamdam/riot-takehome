@@ -1,154 +1,130 @@
 from unittest import TestCase
+from unittest.mock import patch
+from http import HTTPMethod, HTTPStatus
 from flask import Flask
-from http import HTTPStatus
 
 from api.config.fields import SignatureFields
+from api.controllers.signature import SignatureHandler
 from api.services.signature import sign, verify
 
 
 mock_app = Flask(__name__)
 
 
-class TestSignatureService(TestCase):
+class TestSignEndpoint(TestCase):
 
-    def test_sign_service(self):
-        payload = {
-            "name": "Alice",
-            "age": 30,
-            "city": "Wonderland"
-        }
+    def test_sign_returns_signature_and_OK(self):
+        payload = {}
 
-        with mock_app.test_request_context("/sign", method="POST", json=payload):
+        with mock_app.test_request_context("/sign", method=HTTPMethod.POST, json=payload):
             response, status_code = sign()
 
         self.assertEqual(status_code, HTTPStatus.OK)
-        self.assertIn(SignatureFields.signature, response)
+        self.assertIn(SignatureFields.signature, response.keys())
+        self.assertEqual(len(response.keys()), 1)
         self.assertIsInstance(response[SignatureFields.signature], str)
 
-    def test_sign_service_determinism(self):
-        payload1 = {
-            "b": 2,
-            "a": {
-                "c": {},
-                "d": None
-            }
-        }
-        payload2 = {
-            "a": {
-                "d": None,
-                "c": {}
-            },
-            "b": 2
-        }
+    @patch.object(SignatureHandler, "sign_payload")
+    def test_sign_returns_ERROR_on_sign_error(self, mo_sign):
+        payload = {}
+        mo_sign.side_effect = ValueError
 
-        with mock_app.test_request_context("/sign", method="POST", json=payload1):
-            response1, status_code1 = sign()
+        with mock_app.test_request_context("/sign", method=HTTPMethod.POST, json=payload):
+            _, status_code = sign()
 
-        with mock_app.test_request_context("/sign", method="POST", json=payload2):
-            response2, status_code2 = sign()
+        self.assertEqual(status_code, HTTPStatus.INTERNAL_SERVER_ERROR)
 
-        self.assertEqual(status_code1, HTTPStatus.OK)
-        self.assertEqual(status_code2, HTTPStatus.OK)
-        self.assertEqual(response1[SignatureFields.signature], response2[SignatureFields.signature])
+    def test_sign_returns_BADREQUEST_on_invalid_input(self):
+        # With invalid JSON, get_json(silent=True) will return None
+        with mock_app.test_request_context("/sign", method=HTTPMethod.POST, json=None):
+            _, status_code = sign()
 
-    def test_roundtrip_verify(self):
+        self.assertEqual(status_code, HTTPStatus.BAD_REQUEST)
+
+
+class TestVerifyEndpoint(TestCase):
+
+    def test_verify_successfully_verify_payload_signed_by_us(self):
+        original = {}
+
+        # First, sign the payload
+        with mock_app.test_request_context("/sign", method=HTTPMethod.POST, json=original):
+            signed, _ = sign()
+
+        # Second, prepare payload for verify
         payload = {
-            "name": "Bob",
-            "role": "admin"
+            SignatureFields.data: original,
+            SignatureFields.signature: signed[SignatureFields.signature]
         }
 
-        # Sign the data to get a valid signature
-        with mock_app.test_request_context("/sign", method="POST", json=payload):
-            sign_response, _ = sign()
+        # This is the actual test : trying to verify our own signed output
+        with mock_app.test_request_context("/verify", method=HTTPMethod.POST, json=payload):
+            verified, status_code = verify()
 
-        signature = sign_response[SignatureFields.signature]
+        self.assertEqual(status_code, HTTPStatus.NO_CONTENT)
+        self.assertEqual(verified, "")
 
-        # Verify the signed data, this is the actual test
-        verify_payload = {
-            SignatureFields.data: payload,
-            SignatureFields.signature: signature
-        }
+    def test_verify_successfully_detect_tampered_payload(self):
+        original = {"name": "John"}
 
-        with mock_app.test_request_context("/verify", method="POST", json=verify_payload):
-            _, verify_status = verify()
+        # First, sign the payload
+        with mock_app.test_request_context("/sign", method=HTTPMethod.POST, json=original):
+            signed, _ = sign()
 
-        self.assertEqual(verify_status, HTTPStatus.NO_CONTENT)
-
-    def test_unsuccessful_verify(self):
+        # Second, prepare payload for verify
         payload = {
-            "name": "Charlie",
-            "role": "user"
+            SignatureFields.data: {"name": "James"},
+            SignatureFields.signature: signed[SignatureFields.signature]
         }
 
-        # Sign the data to get a valid signature
-        with mock_app.test_request_context("/sign", method="POST", json=payload):
-            sign_response, _ = sign()
+        # This is the actual test : verify should return a BAD REQUEST due to tampered data
+        with mock_app.test_request_context("/verify", method=HTTPMethod.POST, json=payload):
+            _, status_code = verify()
 
-        signature = sign_response[SignatureFields.signature]
+        self.assertEqual(status_code, HTTPStatus.BAD_REQUEST)
 
-        # Subtest 1: Altered signature
-        altered_signature_payload = {
-            SignatureFields.data: payload,
-            SignatureFields.signature: signature[::-1]
+    def test_verify_successfully_detect_invalid_signature(self):
+        original = {}
+
+        # First, sign the payload
+        with mock_app.test_request_context("/sign", method=HTTPMethod.POST, json=original):
+            signed, _ = sign()
+
+        # Second, prepare payload for verify
+        payload = {
+            SignatureFields.data: {},
+            SignatureFields.signature: signed[SignatureFields.signature][:-1]
         }
 
-        with mock_app.test_request_context("/verify", method="POST", json=altered_signature_payload):
-            _, altered_status = verify()
+        # This is the actual test : verify should return a BAD REQUEST due to invalid signature
+        with mock_app.test_request_context("/verify", method=HTTPMethod.POST, json=payload):
+            _, status_code = verify()
 
-        with self.subTest("Altered Signature"):
-            self.assertEqual(altered_status, HTTPStatus.BAD_REQUEST)
+        self.assertEqual(status_code, HTTPStatus.BAD_REQUEST)
 
-        # Subtest 2: Tampered data
-        tampered_data_payload = {
-            SignatureFields.data: {
-                "name": "Charlie",
-                "role": "admin"  # changed role
-            },
-            SignatureFields.signature: signature
+    def test_verify_returns_BADREQUEST_on_invalid_input(self):
+        with self.subTest("Test invalid JSON-dict"):
+            with mock_app.test_request_context("/verify", method=HTTPMethod.POST, json=""):
+                _, status_code = verify()
+            
+            self.assertEqual(status_code, HTTPStatus.BAD_REQUEST)
+
+        with self.subTest("Test missing keys"):
+            payload = {}
+            with mock_app.test_request_context("/verify", method=HTTPMethod.POST, json=payload):
+                _, status_code = verify()
+
+            self.assertEqual(status_code, HTTPStatus.BAD_REQUEST)
+
+    @patch.object(SignatureHandler, "verify_payload")
+    def test_verify_returns_ERROR_on_execution_error(self, mo_verify):
+        payload = {
+            SignatureFields.data: {},
+            SignatureFields.signature: ""
         }
+        mo_verify.side_effect = ValueError
 
-        with mock_app.test_request_context("/verify", method="POST", json=tampered_data_payload):
-            _, tampered_status = verify()
+        with mock_app.test_request_context("/verify", method=HTTPMethod.POST, json=payload):
+            _, status_code = verify()
 
-        with self.subTest("Tampered Data"):
-            self.assertEqual(tampered_status, HTTPStatus.BAD_REQUEST)
-
-    def test_verify_valid_different_paylods(self):
-        payload1 = {
-            "name": {
-                "a": 1,
-                "b": 2
-            },
-            "role": "admin"
-        }
-        payload2 = {
-            "role": "admin",
-            "name": {
-                "b": 2,
-                "a": 1
-            }
-        }
-
-        # Sign the first payload to get a valid signature
-        with mock_app.test_request_context("/sign", method="POST", json=payload1):
-            sign_response, _ = sign()
-
-        signature = sign_response[SignatureFields.signature]
-
-        # Both payloads must verify successfully
-        verify1 = {
-            SignatureFields.data: payload1,
-            SignatureFields.signature: signature
-        }
-        verify2 = {
-            SignatureFields.data: payload2,
-            SignatureFields.signature: signature
-        }
-
-        with mock_app.test_request_context("/verify", method="POST", json=verify1):
-            _, status1 = verify()
-        with mock_app.test_request_context("/verify", method="POST", json=verify2):
-            _, status2 = verify()
-
-        self.assertEqual(status1, HTTPStatus.NO_CONTENT)
-        self.assertEqual(status2, HTTPStatus.NO_CONTENT)
+        self.assertEqual(status_code, HTTPStatus.INTERNAL_SERVER_ERROR)

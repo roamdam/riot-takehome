@@ -50,7 +50,7 @@ def sign():
                                 error:
                                     type: string
             500:
-                description: Unable to decrypt message
+                description: Unable to sign message
                 content:
                     application/json:
                         schema:
@@ -61,7 +61,11 @@ def sign():
         tags:
             - signature
     """
-    payload = request.get_json()
+    # We accept non-dict JSON input, such as a single string, null, a list...
+    #   but still raises a BAD REQUEST if get_json did not return properly
+    payload = request.get_json(silent=True)
+    if payload is None:
+        return {"error": "Invalid JSON payload"}, HTTPStatus.BAD_REQUEST
     logger = getLogger(__name__)
 
     handler = SignatureHandler(signer=HMACSigner())
@@ -132,7 +136,7 @@ def verify():
     payload = request.get_json()
 
     # Validate that signature and data are present in payload. With more time we'd use a schema validation decorator
-    if SignatureFields.signature not in payload or SignatureFields.data not in payload:
+    if not isinstance(payload, dict) or SignatureFields.signature not in payload or SignatureFields.data not in payload:
         return {"error": "Missing signature or data in payload"}, HTTPStatus.BAD_REQUEST
 
     handler = SignatureHandler(signer=HMACSigner())
