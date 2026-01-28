@@ -1,8 +1,7 @@
 # Riot take-home challenge
 
 The project is made in python using Flask, swagger and apispec.
-Design notes are available below to detail somes choices.
-On top of the tests suite, the section below gives some example requests to test functionality and consistency.
+Design notes are available below to detail some choices.
 
 ## Usage
 
@@ -15,85 +14,95 @@ Default payloads are valid ones, and work as pair between `encrypt`/`decrypt` en
 
 ### Running the app locally
 
-You can also run the Flask app locally. With the requirements installed, it will default to `http://127.0.0.1:5000` :
+You can also run the Flask app locally. It will default to `http://127.0.0.1:5000`. Using `virtualenv` :
 
 ```bash
+virtualenv venv && source venv/bin/activate
 pip install -r requirements.txt
 flask run
 ```
 
-From there, here are some ready-to-execute requests :
+> Note that the signature algorithm needs a `HMAC_SECRET` environment variable. If it is not set, it will default to an
+> empty string, so the signatures won't be the same as the ones from the demonstration API.
 
-#### Encrypt / Decrypt
-
-```bash
-# Encrypt
-curl -X POST http://127.0.0.1:5000/api/encrypt -H 'Content-Type: application/json' -d '{"Hello": "world"}'
-# Decrypt return from encrypt
-curl -X POST http://127.0.0.1:5000/api/decrypt -H 'Content-Type: application/json' -d '{"Hello":"@@enc@@v1::IndvcmxkIg=="}'
-# Decrypt return from encrypt with an added clear field
-curl -X POST http://127.0.0.1:5000/api/decrypt -H 'Content-Type: application/json' -d '{"Hello":"@@enc@@v1::IndvcmxkIg==", "from": "earth"}'
-```
-
-#### Sign / verify
+If you want to run the tests :
 
 ```bash
-# Sign
-curl -X POST http://127.0.0.1:5000/api/sign -H 'Content-Type: application/json' -d '{"Hello": "world"}'
-# Verify with returned signature
-curl -X POST http://127.0.0.1:5000/api/verify -H 'Content-Type: application/json' -d '{"data": {"Hello": "world"}, "signature":"5b1ffef543e790b14d5b283f8205cccad151d3f7d05829b79f76541d1ef71eba"}'
-# Verify with tampered data
-curl -X POST http://127.0.0.1:5000/api/verify -H 'Content-Type: application/json' -d '{"data": {"Hi": "world"}, "signature":"5b1ffef543e790b14d5b283f8205cccad151d3f7d05829b79f76541d1ef71eba"}'
-
-# Verify identical JSON with varying ordering
-curl -X POST http://127.0.0.1:5000/api/verify -H 'Content-Type: application/json' -d '{"data": {"me": "here", "you": "there"}, "signature": "15cd5d148d56732a0d52e0f352c789a4fc738b7b6bed0b66cfd3f8461eaf14df"}'
-curl -X POST http://127.0.0.1:5000/api/verify -H 'Content-Type: application/json' -d '{"data": {"you": "there", "me": "here"}, "signature": "15cd5d148d56732a0d52e0f352c789a4fc738b7b6bed0b66cfd3f8461eaf14df"}'
-
+pip install -r requirements-ci.txt
+python -m pytest tests/unit
+python -m pytest tests/functional
 ```
+
+## Files structure
+
+### API
+
+All relevant code lies in `api` module. Here's the detail by relevance order.
+
+* `controllers` holds the controllers that actually do the business logic
+    + `encryption.py` holds the handler for `/encrypt` and `/decrypt` endpoints
+    + `signature.py` holds the handler for `/sign` and `/verify` endpoints
+* `helpers` holds the algorithm classes for encryption and signature, see *Design notes* below for explanations
+* `services` holds the routes definition for the endpoints, no logic there except request validation and error handling
+* `config` contains various configurations (api spec, json fields and constants). The secret key for the signing
+    algorithm is read there, from the `HMAC_SECRET` environment variable
+
+### Tests
+
+The `tests` folder contains `unit` and `functional` tests.
+
+* Unit tests are made on the controllers and the helpers, with mocking relevant methods
+* Functional tests are made on the endpoints themselves (services). This is where we test the roundtrip validation :
+    + `/decrypt` successfully handles the output of `/encrypt`, with additional clear values
+    + `/verify` successfully verifies an input signed by us with `/sign`
+    + `/verify` successfully refuses tampered data or invalid signature
 
 ## Design notes
 
 Below are explanations about some architectural or functional choices I made for the exercise.
+
+### Usage of a sentinel to detect encrypted values
+
+As the `decrypt` endpoint must be able to distinguish between encrypted values and clear ones, I chose to use a sentinel
+string, prefixed to the encrypted values. This mimics what happens for PGP messages or RSA keys.
+
+The idea is that the cryptographic security is provided by the chosen encryption algorithm, and the sentinel is only
+there to signal an encrypted value for later calls to `/decrypt` endpoint.
+
+There's a slight risk of collision with a clear value that would actually be prefixed with the sentinel. Knowing more
+about the API business context would suffice to choose an even better sentinel. 
 
 ### Abstraction
 
 The objective is to be able to change the encryption or signature algorithms easily without having to change many parts
 of the code. The reasoning is the same for encryption and signatures, we use encryption as example.
 
-The controllers `EncryptionHandler` and `SignatureHandler` takes an algorithm helper as argument :
+The controllers `EncryptionHandler` and `SignatureHandler` takes an algorithm helper as argument.
+See `api/services/encryption.py` :
 
 ```python
-from api.helpers.crypters import SomeCrypter
+from api.helpers.crypters import Base64Crypter
 
-handler = EncryptionHandler(crypter=SomeCrypter())
+handler = EncryptionHandler(crypter=Base64Crypter())
 ```
 
-Provided the algorithm helper contains an `encrypt` and `decrypt` method, it allows to easily change the algorithm used
-by the controller, by writing a new helper with the desired algorithm and changing the parameter in the above line.
+This allows to easily change the encryption algorithm by just using another algorithm helper. For instance, if we had
+a `RSACrypter`, we just have to the endpoint code to :
 
-This would even allow to maintain several algorithms in the codebase without many changes, allowing evolution with
-retro-compatibility, and why not exposing a query parameter in the API to choose the algorithm dynamically.
+```python
+from api.helpers.crypters import RSACrypter
 
-Another simpler option would have been to use a unique helper class, not given as parameter. Changing the algorithm would
-only require changing the content of the helper's `encrypt` and `decrypt` methods, but we would lose the possibility of
-maintaining several algorithms.
+handler = EncryptionHandler(crypter=RSACrypter())
+```
 
-### Usage of a sentinel to detect encrypted values
+The only constraint is that any algorithm helper must contain `encrypt` `decrypt` methods, as the class `RootCrypter`
+indicates, so that the encryption controller can use it whatever the algorithm helper chosen.
 
-As the `decrypt` endpoint must be able to distinguish between encrypted values and clear ones, I chose to use a sentinel
-string, prefixed to the encrypted values. The role of this sentinel is to signal that the value was encrypted by us,
-allowing an easy detection without compromising the encryption, which is provided by the encryption algorithm on
-the value itself.
+This architecture allows to maintain several algorithms in the codebase, and why not choose dynamically which algorithm
+to use for encryption (this would require adding a query parameter in the endpoint though).
 
-If the sentinel isn't there, we know it's not encrypted. If it's there, we try and decrypt the value. The endpoint will
-return a `BadRequest` if any encrypted string cannot be decrypted, meaning the string was not an encrypted value returned
-by us previously.
-
-The choice of the sentinel value emerges from two ideas:
-
-* avoid collision with clear strings. This would be business/domain dependant, but as an generic example I used
-`@@enc@@vX::`. The versioning would, for instance, allow to link various encryption algorithm behind the scenes.
-* allow easy reading by humans, in the code or in the logs. 
+Another simpler, but less flexible, option would be a fixed algorithm helper, and just updating its `encrypt` and
+`decrypt` method, while the sentinel logic would stay the same in the controller.
 
 ### Allowing any key ordering for signature
 

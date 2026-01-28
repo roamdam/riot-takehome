@@ -44,7 +44,7 @@ class TestSignEndpoint(TestCase):
 
 class TestVerifyEndpoint(TestCase):
 
-    def test_verify_successfully_verify_payload_signed_by_us(self):
+    def test_verify_successfully_verifies_payload_signed_by_us(self):
         original = {}
 
         # First, sign the payload
@@ -63,6 +63,45 @@ class TestVerifyEndpoint(TestCase):
 
         self.assertEqual(status_code, HTTPStatus.NO_CONTENT)
         self.assertEqual(verified, "")
+    
+    def test_verify_successfully_verifies_equivalent_payloads(self):
+        original1 = {
+            "drink": "coffee",
+            "status": {
+                "temperature": "cold",
+                "sugar": False
+            }
+        }
+        original2 = {
+            "status": {
+                "sugar": False,
+                "temperature": "cold"
+            },
+            "drink": "coffee"
+        }
+
+        # First, sign one of the payload to get the signature
+        with mock_app.test_request_context("/sign", method=HTTPMethod.POST, json=original1):
+            signed, _ = sign()
+
+        # Second, prepare payloads for verify
+        payload1 = {
+            SignatureFields.data: original1,
+            SignatureFields.signature: signed[SignatureFields.signature]
+        }
+        payload2 = {
+            SignatureFields.data: original2,
+            SignatureFields.signature: signed[SignatureFields.signature]
+        }
+
+        # This is the actual test : we should accept both payloads
+        with mock_app.test_request_context("/verify", method=HTTPMethod.POST, json=payload1):
+            _, status1 = verify()
+        with mock_app.test_request_context("/verify", method=HTTPMethod.POST, json=payload2):
+            _, status2 = verify()
+
+        self.assertEqual(status1, status2)
+        self.assertEqual(status1, HTTPStatus.NO_CONTENT)
 
     def test_verify_successfully_detect_tampered_payload(self):
         original = {"name": "John"}
